@@ -64,6 +64,9 @@
         watch: {
             'content': function (value) {
                 this.codemirror.content = value
+            },
+            'codemirror.content': function (value) {
+                this.codemirror.instance.setValue(value)
             }
         }
     }

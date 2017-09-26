@@ -69,6 +69,9 @@ module.exports = {
   devtool: '#eval-source-map',
   plugins: [
     new ExtractTextPlugin("vuetify-quill.css"),
+    new webpack.ProvidePlugin({
+      'window.Quill': 'quill'
+    })
   ]
 }
 

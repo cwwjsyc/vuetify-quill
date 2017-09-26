@@ -2,11 +2,11 @@
   <div id="app">
     <v-container fluid grid-list-lg>
       <v-layout row wrap>
-        <v-flex>
+        <v-flex xs12>
           <v-card class="elevation-1 grey lighten-4">
-            <vue-component v-model="quill.content" class="white"></vue-component>
+            <vue-component v-model="quill.content" class="white" :fonts="['Roboto']"></vue-component>
           </v-card>
-          <div>{{ quill.content.html }}</div>
+          <div class="ql-editor" v-html="quill.content.html"></div>
           <span v-html="quill.content.delta"></span>
         </v-flex>
       </v-layout>
@@ -33,4 +33,5 @@ export default {
 
 <style lang="scss">
 @import "~vuetify/dist/vuetify.min.css";
+@import "~quill/dist/quill.snow.css";
 </style>
