@@ -1,29 +1,34 @@
 <template>
     <div class="quill-container" :class="paper ? 'ql-paper grey lighten-4' : ''">
         <v-card flat>
-            <v-layout row wrap>
-                <div class="quill-toolbar" ref="toolbar" v-if="toolbar">
+            <v-toolbar card v-if="toolbar" ref="toolbar">
+                <template v-if="toolbar">
                     <slot name="toolbar"></slot>
-                </div>
-            </v-layout>
+                </template>
+            </v-toolbar>
 
-            <div class="editors-container">
-                <template v-if="paper">
-                    <div :class="quill.model?'quill-shown':'quill-hidden'" v-show="quill.model" ref="quill" class="ql-paper elevation-1 mb-3 quill-editor"></div>
-                </template>
-                <template v-else>
-                    <div :class="quill.model?'quill-shown':'quill-hidden'" v-show="quill.model" ref="quill" class="quill-editor"></div>
-                </template>
-                <v-codemirror class="codemirror-instance" :class="codemirror.model?'codemirror-shown':'codemirror-hidden'" v-model="quill.content.source"></v-codemirror>
-            </div>
+            <div v-show="quill.model" ref="quill" class="quill-editor" :class="{'elevation-1':paper,'scrollable':quill.scrollable.model}"></div>
+
+            <v-codemirror class="codemirror-instance" v-if="codemirror" :class="{'codemirror-hidden':codemirror.model, 'codemirror-shown':!codemirror.model}" @input="event().getCodemirrorValue($event)" :content="quill.content.source"></v-codemirror>
+            <v-slide-y-transition>
+            </v-slide-y-transition>
 
             <template v-if="statusBar">
-                <v-card-actions class="grey--text">
-                    <v-spacer></v-spacer>
-                    <small>Words: <span v-html="quill.status.words"></span></small>
+                <v-card-actions class="grey--text status-bar">
+                    <slot name="status">
+                        <v-spacer></v-spacer>
+                        <small>Words: <span v-html="quill.status.words"></span></small>
+                        <small>Characters: <span v-html="quill.status.characters"></span></small>
+                    </slot>
                 </v-card-actions>
             </template>
         </v-card>
+
+        <slot :prop="quill.content">
+            <input type="hidden" name="quill" :value="JSON.stringify(quill.content)">
+            <input type="hidden" name="quill_html" :value="quill.content.html">
+            <input type="hidden" name="quill_delta" :value="JSON.stringify(quill.content.delta)">
+        </slot>
     </div>
 </template>
 
@@ -34,15 +39,15 @@
     import ImageResize from 'quill-image-resize-module/image-resize.min.js'
     import {ImageDrop} from 'quill-image-drop-module'
 
-
     export default {
-        name: 'Quill',
+        name: 'v-quill',
         model: {
             prop: 'content',
         },
         components: { 'v-codemirror': CodeMirror },
         props: {
             content: {},
+            source: { type: Boolean, default: false },
             toolbar: { type: Boolean, default: false },
             options: { type: Object, default: () => { return {} } },
             fonts: { type: Array, default: () => { return [] } },
@@ -52,13 +57,16 @@
         data () {
             return {
                 codemirror: {
-                    model: false
+                    model: true
                 },
                 quill: {
                     model: true,
                     instance: null,
                     content: {},
                     status: {},
+                    scrollable: {
+                        model: false,
+                    },
                     options: {
                         theme: 'snow',
                         placeholder: 'Write something',
@@ -66,11 +74,11 @@
                         modules: {
                             imageResize: {
                                 modules: [ 'Resize', 'DisplaySize', 'Toolbar' ],
-                                handleStyles: {
-                                    backgroundColor: '#222222',
-                                    border: 'none',
-                                    color: 'white'
-                                }
+                                // handleStyles: {
+                                //     backgroundColor: '#222222',
+                                //     border: 'none',
+                                //     color: 'white'
+                                // }
                             },
                             imageDrop: true,
                             toolbar: [
@@ -95,7 +103,7 @@
 
                                 ['clean'],                                         // remove formatting button
 
-                                ['codemirror']
+                                ['codemirror', 'scroll']
                             ]
                         }
                     }
@@ -141,15 +149,18 @@
             customToolbar () {
                 let self = this
                 let toolbar = self.quill.instance.getModule('toolbar')
-                toolbar.addHandler('codemirror', function () {
 
-                })
-                let codemirrorButton = document.querySelector('.ql-codemirror')
-                codemirrorButton.innerHTML = '<svg viewBox="0 0 18 18"> <polyline class="ql-even ql-stroke" points="5 7 3 9 5 11"></polyline> <polyline class="ql-even ql-stroke" points="13 7 15 9 13 11"></polyline> <line class="ql-stroke" x1="10" x2="8" y1="5" y2="13"></line> </svg>'
-                codemirrorButton.addEventListener('click', function () {
-                    self.codemirror.model = !self.codemirror.model
-                    self.quill.model = !self.quill.model
-                })
+                if (self.source) {
+                    toolbar.addHandler('codemirror', function () {
+
+                    })
+                    let codemirrorButton = document.querySelector('.ql-codemirror')
+                    codemirrorButton.innerHTML = '<svg viewBox="0 0 18 18"> <polyline class="ql-even ql-stroke" points="5 7 3 9 5 11"></polyline> <polyline class="ql-even ql-stroke" points="13 7 15 9 13 11"></polyline> <line class="ql-stroke" x1="10" x2="8" y1="5" y2="13"></line> </svg>'
+                    codemirrorButton.addEventListener('click', function () {
+                        self.codemirror.model = !self.codemirror.model
+                        self.quill.model = !self.quill.model
+                    })
+                }
 
             },
 
@@ -157,13 +168,9 @@
                 let self = this
 
                 self.quill.instance.on('text-change', function (delta, oldDelta, source) {
-                    self.$emit('text-change', delta, oldDelta, source, self.quill.instance);
+                    // self.$emit('text-change', delta, oldDelta, source, self.quill.instance);
                     self.$emit('input', self.quillbox().getContents());
                 })
-
-                Countable.on(self.quillbox().getContainer(), counter => {
-                    self.quill.status = counter
-                }, { stripTags: false, ignore: [] })
             },
 
             quillbox () {
@@ -172,18 +179,14 @@
                 return {
                     setContents (content) {
                         self.quill.instance.setContents(content)
-
-                        self.quill.content = {
-                            html: self.quill.instance.getHTML(),
-                            source: self.quill.instance.getHTML(),
-                            delta: self.quill.instance.getContents()
-                        }
                     },
 
                     getContents () {
+                        let html = self.quill.instance.getHTML()
+
                         self.quill.content = {
-                            html: self.quill.instance.getHTML(),
-                            source: self.quill.instance.getHTML(),
+                            source: html,
+                            html: html,
                             delta: self.quill.instance.getContents()
                         }
 
@@ -192,6 +195,22 @@
 
                     getContainer () {
                         return self.quill.instance.container.querySelector('.ql-editor')
+                    },
+
+                    toggle () {
+                        self.quill.model = !self.quill.model
+                        self.codemirror.model = !self.codemirror.model
+                    }
+                }
+            },
+
+            event () {
+                let self = this
+                return {
+                    getCodemirrorValue (value) {
+                        if (! self.quill.instance.hasFocus()) {
+                            self.quill.instance.clipboard.dangerouslyPasteHTML(value)
+                        }
                     }
                 }
             }
@@ -205,11 +224,16 @@
         },
         watch: {
             'content': function (value) {
-                this.quill.content = value
+                // this.quill.content = value
             },
 
-            'quill.content.source': function (value) {
-                console.log(value)
+            'quill.content.html': function (value) {
+                let self = this
+
+                Countable.on(self.quillbox().getContainer(), counter => {
+                    self.quill.status = counter
+                    console.log(counter)
+                }, { stripTags: false, ignore: [] })
             }
         }
     }
@@ -217,6 +241,25 @@
 
 <style lang="styl">
     @import "~quill/assets/snow";
+
+    .quill-container {
+        overflow: hidden;
+
+        .scrollable {
+            max-height: 450px;
+            overflow-y: scroll;
+        }
+
+        .ql-toolbar.ql-snow {
+            border: none;
+        }
+    }
+
+    .ql-editor {
+        pre.ql-syntax {
+            font-family: 'Ubuntu Mono', monospace;
+        }
+    }
 
     .ql-snow.ql-toolbar, .ql-snow.ql-container {
         border: none;
@@ -235,12 +278,18 @@
             margin: 2rem 4rem 0;
         }
         .ql-editor {
-            padding: 3rem 2rem 1rem;
+            padding: 3rem 2rem;
             transition: left 0.08s ease-out;
             min-height: 300px;
         }
         .ql-editor.ql-blank::before {
             left: 30px;
+        }
+
+        .status-bar {
+            position: absolute;
+            bottom: 0;
+            right: 6rem;
         }
     }
 
@@ -266,18 +315,19 @@
 
     .codemirror {
         &-instance {
-            transition: left 0.08s ease-out;
+            transition: opacity 0.01s ease-out;
+            opacity: 1;
         }
 
         &-hidden {
             position: absolute;
             top: 0;
-            left: 100%;
             opacity: 0;
+            z-index: -1;
         }
 
         &-shown {
-            left: 0;
+            opacity: 1;
             max-width: 100%;
         }
     }

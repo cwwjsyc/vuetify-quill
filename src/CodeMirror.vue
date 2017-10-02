@@ -8,14 +8,13 @@
 
 <script>
     import CodeMirror from 'codemirror'
+    import JSBeautify from 'js-beautify'
     import emmet from '@emmetio/codemirror-plugin'
     import 'codemirror/mode/htmlmixed/htmlmixed'
 
     export default {
         name: 'v-codemirror',
-        model: {
-            prop: 'content'
-        },
+
         props: {
             content: null,
             options: { type: Object, default: () => { return {} } },
@@ -33,12 +32,20 @@
                         lineWrapping: true,
                         matchBrackets: true,
                         styleActiveLine: true,
-                        mode: 'text/html',
+                        mode: 'htmlmixed',
+                        markTagPairs: true,
+                        autoRenameTags: true,
                         extraKeys: {
                             'Tab': 'emmetExpandAbbreviation',
                             'Enter': 'emmetInsertLineBreak'
                         }
 
+                    }
+                },
+
+                jsBeautify: {
+                    options: {
+                        indent: 4
                     }
                 }
             }
@@ -51,22 +58,49 @@
                 this.codemirror.instance = CodeMirror.fromTextArea(this.$refs.codemirror, this.codemirror.options)
             },
 
+            cm () {
+                let self = this
+
+                return {
+                    setValue (value) {
+                        // If the cursor is not in the editor,
+                        // it means the setValue content is being fired
+                        // programmatically
+                        if (self.codemirror.instance.hasFocus() == false) {
+                            self.codemirror.content = JSBeautify.html(value, self.jsBeautify.options)
+                            self.codemirror.instance.setValue(self.codemirror.content)
+                        }
+                    }
+                }
+            },
+
             emmetify () {
                 emmet(CodeMirror)
+            },
+
+            listen () {
+                let self = this
+
+                self.codemirror.instance.on('change', function (instance, data) {
+                    self.codemirror.content = JSBeautify.html(self.codemirror.instance.getValue(), self.jsBeautify.options)
+                    self.$emit('cm-change', self.codemirror.instance.getValue())
+                })
             }
         },
 
         mounted () {
             this.emmetify()
             this.init()
+            this.listen()
         },
 
         watch: {
             'content': function (value) {
-                this.codemirror.content = value
+                this.cm().setValue(value)
             },
+
             'codemirror.content': function (value) {
-                this.codemirror.instance.setValue(value)
+                this.$emit('input', value)
             }
         }
     }

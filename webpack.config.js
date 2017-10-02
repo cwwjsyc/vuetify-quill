@@ -1,6 +1,8 @@
 var path = require('path')
 var webpack = require('webpack')
 var ExtractTextPlugin = require('extract-text-webpack-plugin')
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin')
+const UglifyEsPlugin = require('uglify-es-webpack-plugin');
 
 module.exports = {
   entry: './test/main.js',
@@ -32,8 +34,8 @@ module.exports = {
               fallback: 'vue-style-loader'
             }),
             styl: ExtractTextPlugin.extract({
-              loader: ['css-loader', 'stylus-loader'],
-              fallbackLoader: 'vue-style-loader'
+              use: ['css-loader', 'stylus-loader'],
+              fallback: 'vue-style-loader'
             })
           },
           // other vue-loader options go here
@@ -43,7 +45,10 @@ module.exports = {
       {
         test: /\.js$/,
         loader: 'babel-loader',
-        exclude: /node_modules/
+        exclude: /node_modules/,
+        query: {
+          presets: [['env',{modules: false}]]
+        }
       },
       {
         test: /\.(png|jpg|gif|svg)$/,
@@ -81,18 +86,22 @@ if (process.env.NODE_ENV === 'production') {
   module.exports.entry = './build/production.js'
   // http://vue-loader.vuejs.org/en/workflow/production.html
   module.exports.plugins = (module.exports.plugins || []).concat([
-    new ExtractTextPlugin("vuetify-mediabox.min.css"),
+    new ExtractTextPlugin("vuetify-quill.min.css"),
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: '"production"'
       }
     }),
-    new webpack.optimize.UglifyJsPlugin({
+    new UglifyJSPlugin({
       sourceMap: true,
-      compress: {
-        warnings: false
-      }
     }),
+    // new webpack.optimize.UglifyJsPlugin({
+    //   sourceMap: true,
+    //   minimize: true,
+    //   compress: {
+    //     warnings: false
+    //   }
+    // }),
     new webpack.LoaderOptionsPlugin({
       minimize: true
     })

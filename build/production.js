@@ -1,6 +1,6 @@
 import Quill from '../src/Quill.vue'
 
-Quill.install = function install (Vue) {
+Quill.install = function (Vue) {
   Vue.component(Quill.name, Quill)
 }
 
