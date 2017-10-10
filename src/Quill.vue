@@ -199,6 +199,25 @@
                     // self.$emit('text-change', delta, oldDelta, source, self.quill.instance);
                     self.$emit('input', self.quillbox().getContents())
                 })
+
+                let MutationObserver = window.MutationObserver || window.WebKitMutationObserver || window.MozMutationObserver
+                let observer = new MutationObserver(mutations => {
+                    mutations.forEach(mutation => {
+                        if (mutation.type == "attributes") {
+                            mutation.target.querySelector('span').innerHTML = mutation.target.getAttribute('data-value')
+                        }
+                    })
+                })
+
+                self.quill.instance.container.parentNode.querySelectorAll('[data-value]').forEach(function (item) {
+                    let index = item.getAttribute('data-value')
+                    if (self.fonts.indexOf(index) != -1) {
+                        observer.observe(item, {
+                            attributes: true
+                        })
+                    }
+                })
+
             },
 
             quillbox () {
