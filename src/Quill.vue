@@ -142,8 +142,8 @@
             },
 
             mergeOptions () {
-                this.quill.options = ! this.options.length ? Object.assign(this.options, this.quill.options) : this.options
-                this.quill.options.modules.toolbar = this.toolbarOptions ? this.toolbarOptions : this.quill.options.modules.toolbar;
+                this.quill.options = Object.assign(this.quill.options, this.options)
+                this.quill.options.modules.toolbar = this.toolbarOptions ? this.toolbarOptions : this.quill.options.modules.toolbar
                 if (this.fonts.length) {
                     this.quill.options.modules.toolbar.unshift([{font: this.fonts}])
                 }
